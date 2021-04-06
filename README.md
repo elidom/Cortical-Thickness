@@ -15,17 +15,47 @@ For the examples we will be using the Empathic Response in Psychotherapists data
 Users could simply feed the raw volumes to the pipeline; however, I recommend customizing the preprocessing of the volumes to ensure the best quality and most accurate results. This will consist in:
 
 * A qualitative quality control of the volumes.
-* [N4 Bias Correction](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3071855/), and denoising based on NLM filter.
+* [N4 Bias Correction](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3071855/), and formatting file names.
 * Generation of individual brain masks using [volBrain 1.0](https://volbrain.upv.es/).
 
 #### Quality Control 
 
 See Backhausen et al. (2016)
 
-#### N4 Bias Field Correction and Denoising
+#### N4 Bias Field Correction and formatting file names
 
-You can download my script for this step <a id="raw-url" href="https://github.com/elidom/structural-mri/blob/main/N4_ANTS_2.sh" download>HERE</a>
+First, in order to run the *N4BiasFieldCorrection* algorithm ([ANTS](http://stnava.github.io/ANTs/) must be installed) you have to go to the folder where your NIFTI files are and, if you wanted to preprocess one file, run for instance: 
 
+```bash
+N4BiasFieldCorrection -d 3 -i sub-1000_ses-1_T1w.nii.gz -o sub-1000_n4.nii.gz
+```
+where -d specifies the image dimensionality, -i the input and -o the output name. Of course, we would ideally not want to process the volumes one by one, and would like to have the resulting volume in a dedicated directory. We may use a for loop for the former:
 
+```bash
+mkdir n4_corrected_output
+
+for nii in *.nii.gz; do
+        id=`echo $nii | cut -d "_" -f 1` #extract subject ID
+        N4BiasFieldCorrection -d 3 -i $nii -o n4_corrected_output/${id}_n4.nii.gz #Perform correction
+done
+```
+
+Finally, for the T1 volumes to be ready for the CIVET pipeline, they need to be transformed into MINC files and have a specific pattern in their names; so each file should look something like this: *PREFIX_ID_t1.mnc*, where __PREFIX__ is the study prefix (whichever we want it to be as long as it is consistently used throughout the whole workflow), __ID__ is the indivual volume's identifier, __t1__ tells CIVET that this is a T1-weighted MRI volume that needs processing, and __.mnc__ because it is a MINC file (not NIFTI anymore). For instance, here I would like to use the prefix **TA** and, so, my subject **sub-1000** should look something like this: *TA_1000_t1.mnc*. 
+
+Let's do this in code. Suppose we are in the same directory as before -- i.e where the NIFTI files are, and where we now have a *n4_corrrected_output* folder filled with volumes. For the sake of tidyness I will move all the old NIFTI files to a new directory (since they are no longer useful; but we want them at hand as a backup) and I will create a new directory for the propperly formatted MINC volumes (note that you need to have the [MINC Toolkit](https://bic-mni.github.io/) installed -- or a virtual machine with it): 
+
+```bash
+mkdir NIFTI
+mv *.nii.gz NIFTI
+
+mkdir mnc_files
+
+for nii in $(ls n4_corrected_output); do
+        id=`echo $nii | cut -d "_" -f 1` #extract subject ID
+        nii2mnc $nii mnc_files/TA_${id}_t1.mnc
+done
+```
+
+You can download or copy my script for these two last steps <a id="raw-url" href="https://github.com/elidom/structural-mri/blob/main/N4_formatting.sh" download>HERE</a>. 
 
 
