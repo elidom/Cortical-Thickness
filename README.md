@@ -15,5 +15,17 @@ For the examples we will be using the Empathic Response in Psychotherapists data
 Users could simply feed the raw volumes to the pipeline; however, I recommend customizing the preprocessing of the volumes to ensure the best quality and most accurate results. This will consist in:
 
 * A qualitative quality control of the volumes.
-* [N4 Bias Correction](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3071855/) to correct for noise and field inhomogeneities.
+* [N4 Bias Correction](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3071855/), and denoising based on NLM filter.
 * Generation of individual brain masks using [volBrain 1.0](https://volbrain.upv.es/).
+
+#### Quality Control 
+
+See Backhausen et al. (2016)
+
+#### N4 Bias Field Correction and Denoising
+
+You can download my script for this step <a id="raw-url" href="https://github.com/elidom/structural-mri/blob/main/N4_ANTS_2.sh" download>HERE</a>
+
+
+
+
