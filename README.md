@@ -20,23 +20,24 @@ Users could simply feed the raw volumes to the pipeline; however, I recommend cu
 
 #### Quality Control 
 
-See Backhausen et al. (2016)
+For this quality control I recommend the one described in [Backhausen et al. (2016)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC5138230/). Please follow the steps reported in the paper. It basically consists in evaluating each volume in four different criteria, average their score, and decide -- on the basis of the individually asigned score -- whether to preserve or drop the volume for the rest of the workflow. It is important to be rigurous here because the presence of artifacts and overall bad quality can seriously bias the subsequent tissue segmentation and surface extraction.  
 
 #### N4 Bias Field Correction and formatting file names
 
-First, in order to run the *N4BiasFieldCorrection* algorithm ([ANTS](http://stnava.github.io/ANTs/) must be installed) you have to go to the folder where your NIFTI files are and, if you wanted to preprocess one file, run for instance: 
+First, in order to run the *N4BiasFieldCorrection* algorithm ([ANTS](http://stnava.github.io/ANTs/) must be installed) you have to go to the folder where your NIFTI files are, unzip the volumes and, if you wanted to preprocess one file, run for instance: 
 
 ```bash
-N4BiasFieldCorrection -d 3 -i sub-1000_ses-1_T1w.nii.gz -o sub-1000_n4.nii.gz
+gunzip sub-1000_ses-1_T1w.nii.gz
+N4BiasFieldCorrection -i sub-1000_ses-1_T1w.nii -o sub-1000_n4.nii
 ```
-where -d specifies the image dimensionality, -i the input and -o the output name. Of course, we would ideally not want to process the volumes one by one, and would like to have the resulting volume in a dedicated directory. We may use a for loop for the former:
+where -i specifies the input and -o the output name. Of course, we would ideally not want to process the volumes one by one, and would like to have the resulting volume in a dedicated directory. We may use a for loop for the former:
 
 ```bash
 mkdir n4_corrected_output
 
-for nii in *.nii.gz; do
+for nii in *.nii; do
         id=`echo $nii | cut -d "_" -f 1` #extract subject ID
-        N4BiasFieldCorrection -d 3 -i $nii -o n4_corrected_output/${id}_n4.nii.gz #Perform correction
+        N4BiasFieldCorrection -d 3 -i $nii -o n4_corrected_output/${id}_n4.nii #Perform correction
 done
 ```
 
@@ -46,7 +47,7 @@ Let's do this in code. Suppose we are in the same directory as before -- i.e whe
 
 ```bash
 mkdir NIFTI
-mv *.nii.gz NIFTI
+mv *.nii NIFTI
 
 mkdir mnc_files
 
@@ -58,4 +59,7 @@ done
 
 You can download or copy my script for these two last steps <a id="raw-url" href="https://github.com/elidom/structural-mri/blob/main/N4_formatting.sh" download>HERE</a>. 
 
+#### Generation of brain masks with [volBrain 1.0](https://volbrain.upv.es/)
+
+Even though the CIVET has implemented a brain extraction step (i.e. generation of a binary mask to be multiplied by the original image and strip out the skull, etc.), it might be safer to generate these masks ourselves with a very precise tool: [volBrain 1.0](https://volbrain.upv.es/). First, create a volBrain account (it is free!). Then, upload your NIFTI images one by one (note: they have to be compressed -- i.e. .gz termination) to the volBrain pipeline. Wait until its processing is finished (about 15 minutes; you should receive an email notification). Download the Native Space (NAT) zip file, extract the content, identify the __mask__ file (for instance: _native_mask_n_mmni_fjob293223.nii_)and save it somewhere separate. Be sure to change its name so that you can correctly associate it to its corresponding subject; in the end it will have to be similarly named to the CIVET pattern (PREFIX_ID_mask.mnc), so you might as well save it as, for instance, TA_1000_mask.nii. Before converting the masks into MINC files, carefully inspect that every mask fits the brain as perfectly as possible, so that in future steps only the cephalic mass is segmented from the volume. You can use __fsleyes__ for this, and [manually correct](https://users.fmrib.ox.ac.uk/~paulmc/fsleyes/userdoc/latest/editing_images.html) wherever needed. This quality control of the masks may take time, but it is absolutely necessary.  
 
