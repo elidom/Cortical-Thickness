@@ -1,3 +1,3 @@
 theme: jekyll-theme-midnight
-title: Structural MRI Workflows
-description: This is a work in progress.
+title: MRI Cortical Thickness Workflows
+description: CIVET and FreeSurfer; Whole-Brain and ROI Analysis.
