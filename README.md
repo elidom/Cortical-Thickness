@@ -139,3 +139,8 @@ Of course, you need to change the **topdir** directory accordingly. This script 
 * `-prefix TA` tells civet that we have chosen **TA** as our study prefix (and thus is in every volume's name).
 * With `-N3-distance 0`we tell CIVET not to perform any inhomogeneities correction, since we have already done that ourselves.
 * With `-thickness tlink 10:30` we tell civet to use the *tlink* geometric definition to estimate individual cortical thickness at each vertex of the cortical surface, and to perform a 10mm and 30mm FWHM diffusion kernel smoothing. For a justification on these parameters please see [Lerch & Evans (2005)](https://www.sciencedirect.com/science/article/pii/S1053811904004185?via%3Dihub).
+* Finally, `-run {}` tells CIVET that the subjects we want to run are the ones fed to GNU parallel at the beginning.
+
+For the rest of the parameters please refer to the [CIVET Usage Guide](http://www.bic.mni.mcgill.ca/ServicesSoftware/CIVET-2-1-0-Basic-Usage-of-CIVET). These are the parameters that have proven to work well and that we have used in the laboratory. Feel free to download this script <a id="raw-url" href="https://github.com/elidom/structural-mri/blob/main/run_civet.sh" download>HERE</a>.
+
+First make sure to change the script permits with `chmod a+rwx run_civet.sh`; then, you can simply run the script `./run_civet.sh`. It will take approximately 6 hours per processing round -- i.e. if you specified `--jobs 6` it will take around 6 hours for every 6 subjects. Since we have 35 subjects in the example dataset, it should take around 36 hrs. in total.
