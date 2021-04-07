@@ -83,3 +83,59 @@ mv *.mnc mnc_masks
 ```
 Now all the mask files should be exactly as CIVET asks them to be: PREFIX_ID_mask.mnc (e.g. TA_1001_mask.mnc). You can see the masks I generated in /misc/charcot2/dominguezma/tutorial/masks
 
+### The CIVET pipeline
+
+Now that everything is ready, we can put files together to have CIVET start processing the --now clean-- MRI volumes. To get a broader perspective and fine-grained detail on what CIVET does, please visit their [official website](http://www.bic.mni.mcgill.ca/ServicesSoftware/CIVET-2-1-0-Introduction). In a nutshell, what CIVET does is:
+
+* Registration of idividual volumes to stereotaxic space
+* Tissue classification (WM, GM, CSF)
+* Surface extraction of left and right hemispheres separately (importantly, this is done through the fitting of a deformable model -- a polygon mesh -- to the individual cortex inner and outer surface. This polygon mesh consists of **40,962 vertices** for each hemisphere; this is important to have in mind, for it is also the number of cortical thickness estimates we are going to be working with in the statistical analysis.).
+* Produces regional maps on the base of a couple atlases
+* Produces a series of figures and diagrams for quality control
+* (Normally, it would start with an N3 intensity normalization and generation of masks for brain extraction; however, in our case these steps will be skipped because we have provided the corrected images and our own brain masks.)
+
+To start with, we are creating a directory specifically for our processing and create a directory therein where all the _T1_ and _mask_ volumes will be.
+
+```bash
+mkdir civet
+mkdir civet/mnc_vols
+
+mv mnc_files/*.mnc civet/mnc_vols
+mv mnc_masks/*.mnc civet/mnc_vols
+```
+Now it is time to create a script with the specific usage that we would like CIVET to have. To gain a broader perspective visit [this website](http://www.bic.mni.mcgill.ca/ServicesSoftware/CIVET-2-1-0-Basic-Usage-of-CIVET). As specified there, in any CIVET run, we must specify:
+
+* sourcedir <dir> : directory of source images
+* targetdir <dir> : output directory
+* prefix <name> : the source images prefix (name of study)
+* a list of subjects to process (an enumeration or a list in a simple text file)
+* an action command (like -run) 
+
+In this case, I will assume that you are working in the C-25 Lab (INB). You have to log into the _charcot_ system, for I know for sure that CIVET is installed in that machine.
+
+```bash
+ssh charcot #and then input your password
+```
+Moreover, it has the greatest processing power. We will be using _GNU Parallel_ there to run the pipeline. 
+
+Now I will assume that you are logged into _charcot_, and standing in the recently created _civet_ directory -- which for now only contains the *mnc_vols* directory with all the appropriately named _T1_ and _mask_ files. Now create here a script with the following contents:
+
+```bash
+#!/bin/bash
+
+topdir=/misc/charcot2/dominguezma/tutorial/civet
+
+source /misc/charcot/santosg/CIVET/civet_2_1_1/Linux-x86_64/init.sh
+
+ls mnc_vols/*t1.mnc | cut -d "_" -f 3 | cut -d "_" -f 2 | parallel --jobs 6 /misc/charcot2/santosg/civet-2.1.1-binaries-ubuntu-18/Linux-x86_64/CIVET-2.1.1/CIVET_Processing_Pipeline -sourcedir $topdir/mnc_vols -targetdir $topdir/target -prefix TA -N3-distance 0 -lsq12 -mean-curvature -mask-hippocampus -resample-surfaces -correct-pve -interp sinc -template 0.50 -thickness tlink 10:30 -area-fwhm 0:40 -volume-fwhm 0:40 -VBM -surface-atlas AAL -granular -run {}
+```
+
+Of course, you need to change the **topdir** directory accordingly. This script has the following elements:
+* First, it starts by feeding the subjects' IDs into GNU parallel (`ls mnc_vols/*t1.mnc | cut -d "_" -f 3 | cut -d "_" -f 2 | parallel`) by calling each T1 volume and cutting their name into their identifier -- e.g. 999.
+* Then it tells GNU parallel to run with 6 cores from the machine (`--jobs 6`); charcot has 8 cores, so here I am leaning 2 cores free. You can modify this as you want. 
+* With `/misc/charcot2/santosg/civet-2.1.1-binaries-ubuntu-18/Linux-x86_64/CIVET-2.1.1/CIVET_Processing_Pipeline` we are simply calling the pipeline where it is located.
+* `-sourcedir $topdir/mnc_vols` specifies where the T1 and mask volumes are located.
+* `-targetdir $topdir/target` specifies where we want the output to be; this will create the directory 'target'.
+* `-prefix TA` tells civet that we have chosen **TA** as our study prefix (and thus is in every volume's name).
+* With `-N3-distance 0`we tell CIVET not to perform any inhomogeneities correction, since we have already done that ourselves.
+* With `-thickness tlink 10:30` we tell civet to use the *tlink* geometric definition to estimate individual cortical thickness at each vertex of the cortical surface, and to perform a 10mm and 30mm FWHM diffusion kernel smoothing. For a justification on these parameters please see [Lerch & Evans (2005)](https://www.sciencedirect.com/science/article/pii/S1053811904004185?via%3Dihub).
