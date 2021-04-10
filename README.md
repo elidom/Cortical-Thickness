@@ -162,4 +162,35 @@ Of course, you need to change the **topdir** directory accordingly. This script 
 
 For the rest of the parameters please refer to the [CIVET Usage Guide](http://www.bic.mni.mcgill.ca/ServicesSoftware/CIVET-2-1-0-Basic-Usage-of-CIVET). These are the parameters that have proven to work well and that we have used in the laboratory. Feel free to download this script <a id="raw-url" href="https://github.com/elidom/structural-mri/blob/main/run_civet.sh" download>HERE</a>.
 
-First make sure to change the script permits with `chmod a+rwx run_civet.sh`; then, you can simply run the script `./run_civet.sh`. It will take approximately 6 hours per processing round -- i.e. if you specified `--jobs 6` it will take around 6 hours for every 6 subjects. Since we have 35 subjects in the example dataset, it should take around 36 hrs. in total.
+First make sure to change the script permits with `chmod a+rwx run_civet.sh`; then, you can simply run the script `./run_civet.sh`. It will take approximately 6 hours per processing round -- i.e. if you specified `--jobs 6` it will take around 6 hours for every 6 subjects. Since we have 35 subjects in the example dataset, it should take around 36 hrs in total.
+
+#### Output quality control
+
+When it is finished processing the volumes we should be able to find a series of fol folders in the *target* directory: *classify, final, logs, mask, native, surfaces, temp, thickness, transforms, VBM, verify*. In the verify directory we should be able to find a set of images that serve to perform quality control, such as this one: 
+
+![Verify Image](TA_753_verify.png)
+
+To interpret the quality control images contained by the verify folder please refer to [this website](http://www.bic.mni.mcgill.ca/ServicesSoftware/CIVET-2-1-0-Quality-Control).
+
+#### Visualizing the output
+
+The *surfaces* folder contains the *.obj* tridimensional brain cortex models of the individual brain. You can see it using Display; for instance, if you are standing within the output folder of a specific subject (i.e. within the _target_ directory), you may type in the console (let us use subject 804 here as an example): 
+```bash
+Display surfaces/TA_804_gray_surface_left_81920.obj
+```
+
+upon which the individual cortical surface model should show up on screen:
+
+![Surface](imgs/surface.png)
+
+To overylay the individual thickness data to this surface, you can click on the surface in the *Objects* window, then go to the *Menu* window and click *File > Load Vertex Data*, navigate to the *thickness* directory, and load the `TA_804_native_rms_rsl_tlink_30mm_left.txt` file -- which is a simple text file with 40,962 vertices (remember that number?) corresponding to the thickness estimates in milimeters for each vertex in the mesh. These are also the files that we are meinly going to be using for the statistical tests. After opening that, the thickness map should show up in the Viewer:
+
+![Thickness](imgs/ss1.png)
+
+For more information on the usage of Display, please refer to the [MINC Display Guide](http://www.bic.mni.mcgill.ca/software/Display/Display.html)
+
+### Statistical Analysis with R
+
+......
+
+
