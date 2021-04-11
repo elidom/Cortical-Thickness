@@ -191,6 +191,42 @@ For more information on the usage of Display, please refer to the [MINC Display 
 
 ### Statistical Analysis with R
 
-......
+#### Region of Interest Analysis
 
+Here comes the fun part. For this you will need to have the RMINC package installed in R. If you find it difficult to install the package (which is likely to happen if you are using Ubuntu or Windows, consider using [containers or a virtual machine](https://bic-mni.github.io/#virtual-machine). First of all, I will move all the necessary cortical thickness data (from all the subjects) to one directory accesible from my R project session. So say I have my R project hosted in a directory that is next to the one where my CIVET workflow took place. Then I could move everything I need there. Suppose we are still standing in the CIVET directory.
+
+```bash
+mkdir ../rproject/thickness
+
+cp target/*/thickness/*_native_rms_rsl_tlink_30mm_* ../rproject/thickness
+```
+This code will copy all the 30mm smoothed native cortical thickness resampled *(rsl)* to the MNI ICBM152 surface model to the folder in our rproject, including the files corresponding to the left hemishpere, the right hemisphere, and the asymmetry maps -- if your R project is not exactly next to your CIVET folder, please adapt the code accordingly. For more information regarding the CIVET outputs, [see here](http://www.bic.mni.mcgill.ca/ServicesSoftware/CIVET-2-1-0-Outputs-of-CIVET).
+
+If your Region of Interest is one of the AAL Atlas regions, please follow [this tutorial](https://github.com/CobraLab/documentation/wiki/ROI-Analysis-in-CIVET) written by Dr. Garza-Villarreal and the CoBrALab. 
+
+Otherwise, you have to get or create your ROI and have in a NIFTI format and have it registered to the MNI-152 standard space. I will give an example here getting a ROI from the [Human Brainnetome Atlas](https://atlas.brainnetome.org/bnatlas.html), which parcelates the brain in more than 240 regions based on structural connectivity. Since ours is a structural analysis, this is appropriate. You can download all the NIFTI probability maps there; to understand what they mean see [Fan et al.](https://pubmed.ncbi.nlm.nih.gov/27230218/). Since these are probability maps you have to choose a threshold to determine the extention of the ROI. The threshold you choose is somewhat arbitrary and depends on your objectives. The important thing is that we choose one *a priori* and stick to it. Here I choose 60, meaning that my ROI will be constituted by the voxels of the MNI-152 model that in at least in 60% of the subjects pertained to the corresponding region --If this did not make sense, see the link above.
+
+Assuming that the probability maps are now stored in a directory (called BNA_PM) next to my CIVET and R-project directories, I could pick and threshold my ROI using FSL (this is one of several methods possible, but the result is the same): 
+
+```bash 
+mkdir rproject/roi
+
+fslmaths BNA_PM/015.nii.gz -thr 60 rproject/roi/015_th.nii.gz
+
+cd rproject/roi
+
+nii2mnc 015_th.nii.gz 015_th.mnc
+```
+As tou can see from the code I chose the 015 region, which corresponds to an area of the left dorsolateral prefrontal cortex (dlPFC), and put the thresholded result in a ROI-dedicated directory within the *rproject* domain for practicity. Then we moved there and transformed the NIFTI image to a MINC volume.
+
+Now, before projecting this ROI into the CIVET space, we need an average surface model to display our results on. You could one from your own subjects, or download a standard one [HERE](http://www.bic.mni.mcgill.ca/users/llewis/CIVET_files/CIVET_2.0.tar.gz) -- the files called `CIVET_2.0_icbm_avg_mid_sym_mc_left.obj`and `CIVET_2.0_icbm_avg_mid_sym_mc_right.obj`. Have these files at hand in your workspace. For example, I will move them to a dedicated folder (named avg_objs) in the *rproject* directory, and rename them to lh_average.obj and rh_average.obj respectively. For this tutorial we will only be using `lh_average.obj`, for the BNA_015 region of interest that I am analyzing lies on the left hemisphere. If you visualize one of these CIVET average surfaces with Display (`Display avg_objs/lh_average.obj`) you should see something like this: 
+
+![CIVET average surface - left](imgs/avg_left.png)
+
+Now we are ready to transform our ROI into the CIVET space using the `volume_object_evaluate` function:
+
+```bash
+volume_object_evaluate roi/015.mnc avg_objs/lh_average.obj 015_civet.txt
+```
+where `015_civet.txt` is the output -- yes, a simple text file with 40,962 pieces of 0's and 1's, defining where in the CIVET space this ROI is. That is, this is a mask in CIVET space.
 
