@@ -228,5 +228,16 @@ Now we are ready to transform our ROI into the CIVET space using the `volume_obj
 ```bash
 volume_object_evaluate roi/015.mnc avg_objs/lh_average.obj 015_civet.txt
 ```
-where `015_civet.txt` is the output -- yes, a simple text file with 40,962 pieces of 0's and 1's, defining where in the CIVET space this ROI is. That is, this is a mask in CIVET space.
+where `015_civet.txt` is the output -- yes, a simple text file with 40,962 pieces of information, each representing one vertex of the cortical model in CIVET space. However, for this to be a valid mask we need it to be constituted by 0's and 1's defining where in the CIVET space the ROI is. This is simple to achieve: we just need to replace all the numbers that are greater than 0 by 1. This could be done using *regular expression*, but since I am pretty much unfamiliar with it, I do it using R. So you can initialize R simply by typing `R` in the shell, and then do:
+
+```R
+thick <- read.csv("015_civet.csv", header = FALSE)
+
+isgtzero <- thick > 0
+
+thick2 <- ifelse(isgtzero == TRUE, 1, 0)
+
+write.table(thick2, "015_civet_bin.csv", col.names = FALSE, row.names = FALSE)
+```
+Then, you can quit are typing q(), and a file called "015_civet_bin.csv" (*bin* meaning binarized) should be now available. This is our mask in CIVET space.
 
