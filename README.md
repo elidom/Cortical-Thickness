@@ -202,7 +202,7 @@ mkdir ../rproject/thickness
 
 cp target/*/thickness/*_native_rms_rsl_tlink_30mm_* ../rproject/thickness
 ```
-This code will copy all the 30mm smoothed native cortical thickness resampled *(rsl)* to the MNI ICBM152 surface model to the folder in our rproject, including the files corresponding to the left hemishpere, the right hemisphere, and the asymmetry maps -- if your R project is not exactly next to your CIVET folder, please adapt the code accordingly. For more information regarding the CIVET outputs, [see here](http://www.bic.mni.mcgill.ca/ServicesSoftware/CIVET-2-1-0-Outputs-of-CIVET).
+This code will copy all the 30mm smoothed native cortical thickness resampled *(rsl)* to the MNI ICBM152 surface model to the folder in our rproject, including the files corresponding to the left hemishpere, the right hemisphere, and the asymmetry maps -- if your R project is not exactly next to your CIVET folder, please adapt the code accordingly. For more information regarding the CIVET outputs, [see here](http://www.bic.mni.mcgill.ca/ServicesSoftware/CIVET-2-1-0-Outputs-of-CIVET). 
 
 If your Region of Interest is one of the AAL Atlas regions, please follow [this tutorial](https://github.com/CobraLab/documentation/wiki/ROI-Analysis-in-CIVET) written by Dr. Garza-Villarreal and the CoBrALab. 
 
@@ -241,5 +241,68 @@ thick2 <- ifelse(isgtzero == TRUE, 1, 0)
 
 write.table(thick2, "015_civet_bin.csv", col.names = FALSE, row.names = FALSE)
 ```
-Then, you can quit are typing q(), and a file called "015_civet_bin.csv" (*bin* meaning binarized) should be now available. This is our mask in CIVET space.
+Then, you can quit R typing `q()`, and a file called "015_civet_bin.csv" (*bin* meaning binarized) should be now available in the current directory. This is our mask in CIVET space.
+
+Now we should use `vertstats_math` to multiply our thickness files by the recently created mask. Remeber, this will all now happen in CIVET space; that is through .txt files containing 40,962 rows of data, each representing one vertex. We should do this with a `for` loop:
+
+```bash
+for file in thickness/*_native_rms_rsl_tlink_30mm_left.txt; do
+        vertstats_math -mult 015_civet_bin.csv $file -old_style_file $(dirname $file)/$(basename $file .txt)_roi.txt; 
+done
+```
+Now in our `thickness` folder there are individual files containing the cortical thickness data of the ROI for every subject. For example, we now have a file named `TA_804_native_rms_rsl_tlink_30mm_left_roi.txt`, and so one. If you have more than one ROI and you go through this proess several times, remember to use an identifier for each ROI; for instance naming them `[...]_roi015.txt` and so forth. We will use these files in R using the RMINC package. 
+
+We will also be needing now the CSV file containing all the behavioral and demographical information. This CSV file has one row per subject and one column per variable (ID, Group, Age, Sex, Psychometric Score 1, Score 2, Score 3, etc).
+
+So now let's open R (preferably using RStudio). Once in R (or RStudio), let's load the RMINC and dplyr packages (make sure to have them installed first, of course). And run the following code, which should:
+* read the CSV file
+* tidy the data where needed (e.g. making a discrete variable a factor)
+* attach a new column to the data frame containing the location of each individual's ROI cortical thickness information.
+* Relevel groups (i.e. define which is your control group)
+* Load the mask in CIVET space
+* Fit the desired vertex-wise linear model (in this case `thickness ~ group + age + sex` in first instance).
+* Perform an FDR correction for multiple comparisons (this is where we get an answer to our question 'is there a statistically significant difference between the study groups in the selected ROI, taking age and sex as confounding variables?')
+* Write the resulting statistics into a new statistical map (again a 40,962 TXT file) that we will be able to visualize afterwards.
+
+```R
+# Load libraries
+library(RMINC)
+library(dplyr)
+
+# Load CSV file
+info_subs <- read.csv("info_subs.csv")
+
+# Peek into data 
+head(info_sujetos)
+
+# Tidy 
+info_subs <- info_subs %>%
+  mutate(sex = factor(sex),
+         group = factor(group))
+         
+ 
+# Add thickness data
+info_subs$roi015_thickness <- paste("thickness/TA_", info_subs$id, "_native_rms_rsl_tlink_30mm_left_roi.txt", sep = "")
+
+# Check that there is now a new column named 'roi015_thickness'
+names(info_sujetos)
+info_sujetos$left_thickness # I recommend copying one of the results here and pasting it in the console after the 'ls' command to see if the information is correct
+
+# relevel groups
+info_subs$grupo <- relevel(info_subs$group, ref = "NT")  #Control group is called NT (Non-Therapists) in the dataframe
+
+# load CIVET mask
+bna015_mask <- read.table("015_civet_bin.txt")
+
+# Fit linear model
+vs <- vertexLm(roi015_thickness ~ group + age + sex, info_subs)
+
+# Perform FDR correction for multiple comparisons (Is there a signifficant effect? see below)
+vertexFDR(vs, mask = bna015_mask) 
+
+write.table(x=vs[,"tvalue-groupTA"], col.names = FALSE, row.names = FALSE, file = "statistical_map_roi015_civet.txt")
+```
+Now a file called `statistical_map_roi015_civet.txt`should be vailable in the workspace. When you run the `vertexFDR` command you should check in the output whether there is an effect (a t-value) in this case below an FDR threshold of interest (normally 0.05). In this example we do get an effect of group, as seen in the result:
+
+![](imgs/result_FDR.png)
 
