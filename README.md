@@ -1,5 +1,7 @@
 ## About this page
 
+### This is a work in progress!!
+
 In this page I intend to summarise the usage of structural MRI workflows to estimate cortical thickness (CT) from T1-weighted MRI volumes and carry out analyses to answer interesting research questions. My main interest here is to provide a detailed tutorial on CIVET (Montreal Neurological Institute) and RMINC (https://github.com/Mouse-Imaging-Centre/RMINC) to estimate vertex-based individual cortical thickness and later carry out group comparisons and correlations. I will also try to describe -- with lesser detail -- the usage of FreeSurfer (https://surfer.nmr.mgh.harvard.edu/) for CT analyses, especially with an aim towards doing custum region of interest (ROI) analysis.
 
 ## Dataset
