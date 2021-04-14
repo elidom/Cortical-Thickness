@@ -219,7 +219,7 @@ cd rproject/roi
 
 nii2mnc 015_th.nii.gz 015_th.mnc
 ```
-As tou can see from the code I chose the 015 region, which corresponds to an area of the left dorsolateral prefrontal cortex (dlPFC), and put the thresholded result in a ROI-dedicated directory within the *rproject* domain for practicity. Then we moved there and transformed the NIFTI image to a MINC volume.
+As you can see from the code I chose the 015 region, which corresponds to an area of the left dorsolateral prefrontal cortex (dlPFC), and put the thresholded result in a ROI-dedicated directory within the *rproject* domain for practicity. Then we moved there and transformed the NIFTI image to a MINC volume.
 
 Now, before projecting this ROI into the CIVET space, we need an average surface model to display our results on. You could one from your own subjects, or download a standard one [HERE](http://www.bic.mni.mcgill.ca/users/llewis/CIVET_files/CIVET_2.0.tar.gz) -- the files called `CIVET_2.0_icbm_avg_mid_sym_mc_left.obj`and `CIVET_2.0_icbm_avg_mid_sym_mc_right.obj`. Have these files at hand in your workspace. For example, I will move them to a dedicated folder (named avg_objs) in the *rproject* directory, and rename them to lh_average.obj and rh_average.obj respectively. For this tutorial we will only be using `lh_average.obj`, for the BNA_015 region of interest that I am analyzing lies on the left hemisphere. If you visualize one of these CIVET average surfaces with Display (`Display avg_objs/lh_average.obj`) you should see something like this: 
 
@@ -302,12 +302,41 @@ vertexFDR(vs, mask = bna015_mask)
 
 write.table(x=vs[,"tvalue-groupTA"], col.names = FALSE, row.names = FALSE, file = "statistical_map_roi015_civet.txt")
 ```
+Feel free to download this script <a id="raw-url" href="https://github.com/elidom/Cortical-Thickness/blob/main/civet_roi_analysis.R" download>HERE</a>. .
+
 Now a file called `statistical_map_roi015_civet.txt`should be vailable in the workspace. When you run the `vertexFDR` command you should check in the output whether there is an effect (a t-value) in this case below an FDR threshold of interest (normally 0.05). In this example we do get an effect of group, as seen in the result:
 
 ![](imgs/result_FDR.png)
 
-If we wanted to visualize the statistical map on a 3D surface we could type in the cose `Display avg_objs/lh_average.obj`; after Display is open go to the Object Window, click on the green surface label, then go to the Menu Window, and click on File >> Load Vertex Data >> Then load the `statistical_map_roi015_civet.txt` file. Our statistical map is then displayed on screen:
+If we wanted to visualize the statistical map on a 3D surface we first have to modify the CIVET statistical map file; just type on the shell `sed -i 's/NA/0/g' statistical_map_roi015_civet.txt`, which will change all the NAs into 0s. Then we can type in the console `Display avg_objs/lh_average.obj`; after Display is open go to the Object Window, click on the green surface label, then go to the Menu Window, and click on File >> Load Vertex Data >> Then load the `statistical_map_roi015_civet.txt` file. Our statistical map is then displayed on screen:
 
 ![statmap_frontview](imgs/statmap_t_front_view.png)
 
-where the vertex-wise t-values are displayed on a color gradient, just within the ROI (the rest is 0). 
+where the vertex-wise t-values are displayed on a color gradient, just within the ROI (the rest is 0).
+
+##### Automatization
+
+I have automatized all this process here: https://github.com/elidom/CorticalThickness_ROI_Analysis_CIVET_BNA or [HERE](https://github.com/elidom/Cortical-Thickness/tree/main/roi_automatized)
+You just have to download the scripts, put them in the directory where your files are, and call the `make_me_a_ROI.sh`script with its required arguments. If you do not feed it with any arguments, you will get the help message with the necessary information.
+
+![](imgs/script_help_makemearoi.png)
+
+For instance, you could type:
+
+```bash
+./make_me_a_roi.sh 015.nii thickness avg_objs/lh_average.obj info_subs.csv 60 group+age+sex TA NT
+```
+Or, if we have several ROIs, then:
+
+```bash
+for roi in $(ls); do
+        ./make_me_a_roi.sh $roi thickness avg_objs/lh_average.obj info_subs.csv 60 group+age+sex TA NT
+done
+```
+Each individual result will be displayed on the console and the resulting statistical map will be made available in the working directory. 
+
+### Whole-Brain Analysis
+
+After completing our ROI analysis, we might mant to explore the effect size values of the model over the whole brain, or we could have a hypothesis concercing global cortical thickness. Let's now explore those possibilities. The process is very similar, with the difference that we obviously do not have to create any mask. So, it is much easier.
+
+*Work in progress*
