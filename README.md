@@ -306,3 +306,8 @@ Now a file called `statistical_map_roi015_civet.txt`should be vailable in the wo
 
 ![](imgs/result_FDR.png)
 
+If we wanted to visualize the statistical map on a 3D surface we could type in the cose `Display avg_objs/lh_average.obj`; after Display is open go to the Object Window, click on the green surface label, then go to the Menu Window, and click on File >> Load Vertex Data >> Then load the `statistical_map_roi015_civet.txt` file. Our statistical map is then displayed on screen:
+
+![statmap_frontview](imgs/statmap_t_front_view.png)
+
+where the vertex-wise t-values are displayed on a color gradient, just within the ROI (the rest is 0). 
