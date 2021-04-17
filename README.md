@@ -286,7 +286,7 @@ info_subs$roi015_thickness <- paste("thickness/TA_", info_subs$id, "_native_rms_
 
 # Check that there is now a new column named 'roi015_thickness'
 names(info_sujetos)
-info_sujetos$left_thickness # I recommend copying one of the results here and pasting it in the console after the 'ls' command to see if the information is correct
+info_sujetos$roi015_thickness # I recommend copying one of the results here and pasting it in the console after the 'ls' command to see if the information is correct
 
 # relevel groups
 info_subs$grupo <- relevel(info_subs$group, ref = "NT")  #Control group is called NT (Non-Therapists) in the dataframe
@@ -335,8 +335,76 @@ done
 ```
 Each individual result will be displayed on the console and the resulting statistical map will be made available in the working directory. 
 
-### Whole-Brain Analysis
+If we want information on the effect of other variables--for instance, correlation with behavioral scores--we can do:
+
+```bash
+for roi in $(ls); do
+        ./make_me_a_roi.sh $roi thickness avg_objs/lh_average.obj info_subs.csv 60 psychometric_score+age+sex TA NT
+done
+```
+
+### Whole-Hemisphere Analysis
 
 After completing our ROI analysis, we might mant to explore the effect size values of the model over the whole brain, or we could have a hypothesis concercing global cortical thickness. Let's now explore those possibilities. The process is very similar, with the difference that we obviously do not have to create any mask. So, it is much easier.
 
-*Work in progress*
+The conditions to do this are already there; namely, that the individual whole-brain thickness data are in our thickness folder, within the R project directory (that is where we extracted the ROI information from).
+
+So let's open R (or Rstudio) and do the following (very similar to the ROI workflow, except the CSV files contain whole-brain data and we do not load any ROI mask:
+* read the CSV file
+* tidy the data where needed (e.g. making a discrete variable a factor)
+* attach a new column to the data frame containing whole-brain cortical thickness information.
+* Relevel groups (i.e. define which is your control group)
+* Fit the desired vertex-wise linear model (in this case `thickness ~ group + age + sex`).
+* Calculate the Effect Size statistical map (Hedges' g) from the model above.
+* Write the resulting statistical map into a TXT file in our working directory
+* Perform an FDR correction for multiple comparisons and test a whole-hemisphere hypothesis (this is where we get an answer to our question 'is there a statistically significant difference between the study groups in the selected ROI, taking age and sex as confounding variables?')
+* Write the resulting statistics into a new statistical map (again a 40,962 TXT file) that we will be able to visualize afterwards.
+
+```R
+# Load libraries
+library(RMINC)
+library(dplyr)
+
+# Load CSV file
+info_subs <- read.csv("info_subs.csv")
+
+# Peek into data 
+head(info_sujetos)
+
+# Tidy 
+info_subs <- info_subs %>%
+  mutate(sex = factor(sex),
+         group = factor(group))
+         
+ 
+# Add thickness data
+info_subs$left_thickness <- paste("thickness/TA_", info_subs$id, "_native_rms_rsl_tlink_30mm_left.txt", sep = "")
+
+# Check that there is now a new column named 'left_thickness'
+names(info_sujetos)
+info_sujetos$left_thickness # I recommend copying one of the results here and pasting it in the console after the 'ls' command to see if the information is correct
+
+# relevel groups
+info_subs$grupo <- relevel(info_subs$group, ref = "NT")  #Control group is called NT (Non-Therapists) in the dataframe
+
+# Fit linear model
+vs <- vertexLm(left_thickness ~ group + age + sex, info_subs)
+
+# Create Effect Size Statistical Map (Hedges'g)
+effectsize <- vertexEffectSize(vs)
+head(effectsize) # take a glimpse
+
+# Write TXT effect size map
+write.table(x = effectsize[,"hedgesg-groupTA"], file = "effsize_statmap.txt", col.names = FALSE, row.names = FALSE)
+
+# Perform FDR correction for multiple comparisons (test whole-hemisphere hypothesis) This should output whether there are any statistically significant differences between the groups taking age and sex as cofounding variables.
+vertexFDR(vs) 
+
+# Write TXT t-value statistical map
+write.table(x=vs[,"tvalue-groupTA"], col.names = FALSE, row.names = FALSE, file = "statistical_map_lefth.txt")
+```
+
+And done. The statistical should now be available in our working directory for visualization through the same means as above. The script is <a id="raw-url" href="https://github.com/elidom/Cortical-Thickness/blob/main/civet_wholehem_analysis.R" download>HERE</a>.
+
+The same procedures apply to the right hemisphere (just using the right hemisphere model for parcelation and visualization) and the asymmetry estimates (which measures how much thicker--or thinner--cortical thickness is the left hemisphere is with respect to the right hemisphere; this could also yield interesting inter-group differences.
+
