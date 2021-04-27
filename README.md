@@ -414,14 +414,14 @@ The same procedures apply to the right hemisphere (just using the right hemisphe
 
 FreeSurfer has the feature of performing a vertex-wise, whole-brain analysis, correct for multiple comparisons ([Hagler et al. 2006](https://pubmed.ncbi.nlm.nih.gov/17011792/) and, thus, identify significant clusters. If this is all one is looking for, the standard procedure is quite straightforward and very good tutorials have been made in the past (e.g. this [FreeSurfer Short Course in *Andy's Brain Book*](https://andysbrainbook.readthedocs.io/en/latest/FreeSurfer/FreeSurfer_Introduction.html). Here we will perform first a ROI analysis using our own prefedined ROI. Moreover, instead of letting FreeSurfer run all the processing by itself, we will run its first part, feed it with our own volBrain 1.0 generated, manually corrected skull-stripping masks, and then run the rest of the pipeline--presumably more accurately than if we did not use our better masks.
 
-Here, again, we ought to have all our NIFTI volumes in one same folder. So I will assume that all the *.nii.gz* volumes that need processing are in a directory called *FreeSurfer* somewhere in your machine. First, we are going to denoise and correct the signal intensity inhomogeneities in the individual volumes, in the same way as we did with CIVET.
+Here, again, we ought to have all our NIFTI volumes in one same folder. So I will assume that all the *.nii.gz* volumes that need processing are in a directory called *FS* somewhere in your machine. First, we are going to denoise and correct the signal intensity inhomogeneities in the individual volumes, in the same way as we did with CIVET.
 
 ```bash
-cd FreeSurfer
+cd FS
 
 for nii in *.nii.gz; do
         id=`echo $nii | cut -d "_" -f 1` #extract subject ID
-        N4BiasFieldCorrection -d 3 -i $nii -o ${id}_n4.nii.gz #Perform correction
+        N4BiasFieldCorrection -d 3 -i $nii -o ${id}.nii.gz #Perform correction
 done
 
 #Move original NIFTIS somewhere else
@@ -432,3 +432,21 @@ mv *T1w* NIFTI_original
 gunzip *.gz
 ```
 
+Now we have to specify that what the folder where we want output to be placed is. I will create a new directory called rcnall1 for this. For example, I would type:
+
+```bash
+mkdir rcnall1
+SUBJECTS_DIR=/misc/charcot2/dominguezma/tutorial/FS/rcnall1
+```
+Now we are ready to initialize the first part of the FreeSurfer pipeline. Again, using parallel, with the following command:
+
+```bash
+ls *.nii | parallel --jobs 6 recon-all -s {.} -i {} -autorecon1
+```
+Here I specify that 6 jobs should be run simultaneously (this depends on how many cores you want to use; since I am working in charcot, 6 is a perfectly reasonable number. `-s {.}` means that the subjects' names are in the list given at the beginning (`ls *.nii*`) up to the `.` (hence the `{.}`). `-i {}` means simply that the input files are all those named with the `ls *.nii*` at the beginning of the command.
+
+While this runs, we might want to make a copy of our masks in the FS directory.
+
+```bash
+cp -r ../edited_masks .
+```
