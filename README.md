@@ -445,8 +445,99 @@ ls *.nii | parallel --jobs 6 recon-all -s {.} -i {} -autorecon1
 ```
 Here I specify that 6 jobs should be run simultaneously (this depends on how many cores you want to use; since I am working in charcot, 6 is a perfectly reasonable number. `-s {.}` means that the subjects' names are in the list given at the beginning (`ls *.nii*`) up to the `.` (hence the `{.}`). `-i {}` means simply that the input files are all those named with the `ls *.nii*` at the beginning of the command.
 
-While this runs, we might want to make a copy of our masks in the FS directory.
+While this runs, we might want to move our masks to the FS directory.
 
 ```bash
-cp -r ../edited_masks .
+mv ../edited_masks .
 ```
+After the first reconstruction (*autorecon1*) step is complete, we want to substitute the default skull-stripping masks (i.e. those created by FreeSurfer) by the ones we created with VolBrain and manually corrected. First let's move the N4-corrected imaged to their own folder - for tidyness - with:
+
+```bash
+mkdir N4
+
+mv *.nii N4
+```
+
+The mask substitution is to be done with the following script:
+
+```bash
+#!/bin/bash
+# GO to dir
+topdir=$1
+
+cd $topdir
+echo "# # # # #working directory is `pwd `"
+
+N4Folder=N4
+reconallFolder=rcnall1
+maskdir=edited_masks
+
+SUBJECTS_DIR=$reconallFolder
+
+
+for nii in $(ls $N4Folder); 
+do
+	### crear ID de sujetos
+	id=`echo $nii | cut -d "_" -f 1`
+	echo "$id created"
+
+
+	### Part 1: Get transformation matrix to FS space
+	## mgz --> nii
+
+	mri_convert $reconallFolder/$id/mri/T1.mgz $reconallFolder/$id/mri/T1.nii.gz
+
+	
+	mri_convert $reconallFolder/$id/mri/brainmask.mgz $reconallFolder/$id/mri/brainmask.nii.gz
+
+
+	##  Compute matrix
+	flirt -in $N4Folder/$nii -ref $reconallFolder/$id/mri/T1.nii.gz -out $reconallFolder/$id/mri/T1_to_FS.nii.gz -omat $reconallFolder/$id/mri/T1_to_FS.mat
+
+	
+	### Part 2: Use matrix to transform to FS space
+	## Volbrain mask --> FS space
+
+	VolBrain_mask=$maskdir/${id}_mask.nii
+
+	flirt -in $VolBrain_mask -ref $reconallFolder/$id/mri/T1_to_FS.nii.gz -applyxfm -init $reconallFolder/$id/mri/T1_to_FS.mat -out $reconallFolder/$id/mri/mask_vol_brain_FS.nii
+
+	##  Multiplication
+	
+	fslmaths $reconallFolder/$id/mri/T1.nii.gz -mul $reconallFolder/$id/mri/mask_vol_brain_FS.nii $reconallFolder/$id/mri/brainmask_new.nii.gz
+	
+
+	## nii --> mgz
+	
+	mri_convert $reconallFolder/$id/mri/brainmask_new.nii.gz $reconallFolder/$id/mri/brainmask_new.mgz
+
+	## Add metadata
+	
+	mri_add_xform_to_header $reconallFolder/$id/mri/transforms/talairach.auto.xfm $reconallFolder/$id/mri/brainmask_new.mgz
+
+	### Step 3: Tidy
+	## Rename originals
+	
+	mv $reconallFolder/$id/mri/brainmask.mgz $reconallFolder/$id/mri/brainmask.original.mgz 
+
+	
+	mv $reconallFolder/$id/mri/brainmask.auto.mgz $reconallFolder/$id/mri/brainmask.auto.original.mgz 
+
+	
+	## place new files
+	mv $reconallFolder/$id/mri/brainmask_new.mgz $reconallFolder/$id/mri/brainmask.mgz
+
+	
+	cp $reconallFolder/$id/mri/brainmask.mgz $reconallFolder/$id/mri/brainmask.auto.mgz 
+
+done
+```
+
+The script can be downloaded <a id="raw-url" href="https://github.com/elidom/Cortical-Thickness/blob/main/reconall_1.sh" download>HERE</a>
+
+Finally, we complete the reconstruction process with the following command:
+
+```R
+ls N4/*.nii | parallel --jobs 6 recon-all -s {.} -i {} -autorecon2 -autorecon3 -qcache
+```
+The logic is the same as with the first part.
