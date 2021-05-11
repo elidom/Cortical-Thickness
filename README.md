@@ -540,4 +540,32 @@ Finally, we complete the reconstruction process with the following command:
 ```R
 ls N4/*.nii | parallel --jobs 6 recon-all -s {.} -i {} -autorecon2 -autorecon3 -qcache
 ```
-The logic is the same as with the first part.
+The logic in the call to parallel is the same as with the first reconstruction command (*autorecon1*).
+
+### Creating a ROI
+
+While we wait for the previous process to finish (it might take from hours to days, depending on the amount of subjects you have) we can create the ROI of interest. This must be done partially by hand. I assume that we want to use approximately the same ROI as with CIVET. So we should have the thresholded NIFTI image at hand. I will assume that it is in a folder (within the FS directory) called `roi`. So, first, we register the NIFTI ROI into the `fsaverage`surface space:
+
+```bash
+mri_vol2surf --src roi/015_th.nii.gz --out roi/015.mgh --mni152reg --hemi lh --trgsubject fsaverage
+
+```
+Here we specified:
+* `--src roi/015_th.nii.gz`: where our NIFTI ROI file is.
+* `--out roi/015.mgh`: where we want the output to be.
+* `--mni152reg`: that our ROI is currently in the MNI 152 stereotaxic space
+* `--hemi lh` that it corresponds to the left hemisphere
+* `--trgsubject fsaverage` that we want the output to correspond to the fsaverage space.
+
+Then we open the fsaverage surface and overlay the newly created ROI surface file:
+
+```bash
+freeview -f $SUBJECTS_DIR/fsaverage/surf/lh.inflated:OVERLAY=roi/015.mgh
+
+```
+Then use the 'Path/Custom Fill' tool on the control panel to start drawing the outline of the overlayed ROI. Then click on 'Make Closed Path', then 'Custom Fill', click on wichever point within your outline, mark the option 'Up to and including paths', click on 'Fill' and then close the window. You can now change the fill color and it should look something like this:
+
+![](imgs/freesurfer_roi_outline.png)
+
+Then click on 'Save' in the panel and save the `.label` file in our recently created `roi` directory. Say, as `roi015.label`.
+
