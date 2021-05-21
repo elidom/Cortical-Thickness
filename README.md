@@ -107,16 +107,16 @@ mv mnc_masks/*.mnc civet/mnc_vols
 ```
 Now it is time to create a script with the specific usage that we would like CIVET to have. To gain a broader perspective visit [this website](http://www.bic.mni.mcgill.ca/ServicesSoftware/CIVET-2-1-0-Basic-Usage-of-CIVET). As specified there, in any CIVET run, we must specify:
 
-* sourcedir <dir> : directory of source images
-* targetdir <dir> : output directory
-* prefix <name> : the source images prefix (name of study)
+- sourcedir *dir* : directory of source images
+-targetdir *dir* : output directory
+* prefix *name* : the source images prefix (name of study)
 * a list of subjects to process (an enumeration or a list in a simple text file)
 * an action command (like -run) 
 
 In this case, I will assume that you are working in the C-25 Lab (INB). You have to log into the _charcot_ system, for I know for sure that CIVET is installed in that machine.
 
 ```bash
-ssh charcot #and then input your password
+ssh charcot and then input your password
 ```
 Moreover, it has the greatest processing power. We will be using _GNU Parallel_ there to run the pipeline. 
 
@@ -569,3 +569,58 @@ Then use the 'Path/Custom Fill' tool on the control panel to start drawing the o
 
 Then click on 'Save' in the panel and save the `.label` file in our recently created `roi` directory. Say, as `roi015.label`.
 
+### The FSGD file
+
+The FSGD file is where we specify what the independent variables and their values are. Thus, it is a data table that has a specific format. For an understanding of this I suggest reading [this excelent entry on the topic](https://andysbrainbook.readthedocs.io/en/latest/FreeSurfer/FS_ShortCourse/FS_07_FSGD.html). Now, adding a layer of complexity to it, here we want to include three independent variables --Group, age and sex, where age and sex of covariates of no interest. Thus, our file will look like this:
+	
+```
+GroupDescriptorFile 1			
+Title EmpathicResponse			
+Class TAM			
+Class TAF			
+Class NTM			
+Class NTF			
+Variables	Age		
+Input	sub-753	TAM	62
+Input	sub-775	TAM	58
+Input	sub-791	TAM	54
+Input	sub-774	TAF	51
+Input	sub-804	TAF	67
+Input	sub-814	TAF	50
+Input	sub-1001	TAM	42
+Input	sub-887	TAF	58
+Input	sub-991	TAF	57
+Input	sub-990	TAF	61
+Input	sub-1000	TAM	42
+Input	sub-1030	TAF	51
+Input	sub-1017	TAM	43
+Input	sub-994	TAF	54
+Input	sub-812	TAM	60
+Input	sub-682	TAF	56
+Input	sub-683	TAM	60
+Input	sub-922	NTM	44
+Input	sub-923	NTF	61
+Input	sub-941	NTF	47
+Input	sub-924	NTF	68
+Input	sub-993	NTF	51
+Input	sub-998	NTF	52
+Input	sub-999	NTM	62
+Input	sub-1031	NTM	55
+Input	sub-1023	NTF	61
+Input	sub-1032	NTF	56
+Input	sub-1273	NTF	59
+Input	sub-1215	NTM	46
+Input	sub-1254	NTM	46
+Input	sub-1255	NTF	50
+Input	sub-1256	NTM	60
+Input	sub-1320	NTM	43
+Input	sub-1302	NTM	60
+Input	sub-776	TAM	58
+	
+``` 
+where group and sex are merged into a 4-levels categorical variable and age is specified as numerically continuous. It looks weird because of the tab separators, but it's basically four columns: the input columns, subject ID, group-sex variable, and age. So, you save this information as a `tab delimited text file` and then from the terminal type: 
+	
+```bash
+tr '\r' '\n' < EmpathyStudy.txt > EmpathyStudy.fsgd	
+```
+or whatever name we gave it. Finally place the file in a dedicated directory (say, named FSGD) within our working directory.
