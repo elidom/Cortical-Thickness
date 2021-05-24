@@ -624,3 +624,99 @@ where group and sex are merged into a 4-levels categorical variable and age is s
 tr '\r' '\n' < EmpathyStudy.txt > EmpathyStudy.fsgd	
 ```
 or whatever name we gave it. Finally place the file in a dedicated directory (say, named FSGD) within our working directory.
+
+#### GLM and Cluster Correction
+
+For these next few steps there is no need for me to give an in-detail explanation, since Andy already does it very well in his short course. So please refer to [this entry](https://andysbrainbook.readthedocs.io/en/latest/FreeSurfer/FS_ShortCourse/FS_08_GroupAnalysis.html) and the [next one](https://andysbrainbook.readthedocs.io/en/latest/FreeSurfer/FS_ShortCourse/FS_09_ClusterCorrection.html) and follow the instructions closely. To the ends of this tutorial, I will simply say that we are to execute the following few scripts in order to complete a some more preprocessing steps,fit a GLM and correct for multiple comparisons (which will yield a result of whether there are any surviving significant clusters of differences to be found between both groups). (Disclaimer: these scripts are adapted from those provided by Andy).
+
+Note: when executing each script we have to provide as an argument the name of our study, the one that shows in our FSGD file (EmpathyStudy in our case). 
+
+##### [Script One: Preprocessing](https://github.com/elidom/Cortical-Thickness/blob/main/runMrisPreproc.sh)
+```bash
+#!/bin/tcsh
+  
+setenv study $argv[1]
+  
+foreach hemi (lh rh)
+
+  foreach smoothing (20)
+  
+    foreach meas (volume thickness)
+    
+        mris_preproc --fsgd FSGD/{$study}.fsgd \
+          --cache-in {$meas}.fwhm{$smoothing}.fsaverage \
+          --target fsaverage \
+          --hemi {$hemi} \
+          --out {$hemi}.{$meas}.{$study}.{$smoothing}.mgh
+          
+    end
+      
+  end
+    
+end
+``` 
+
+##### [Script Two: GLM](https://github.com/elidom/Cortical-Thickness/blob/main/runGLMs.sh)
+```bash
+#!/bin/tcsh
+  
+set study = $argv[1]
+  
+foreach hemi (lh rh)
+  foreach smoothness (20)
+    foreach meas (volume thickness)
+        mri_glmfit \
+        --y {$hemi}.{$meas}.{$study}.{$smoothness}.mgh \
+        --fsgd FSGD/{$study}.fsgd \
+        --C Contrasts/ta_nt.mtx \
+        --C Contrasts/nt_ta.mtx \
+        --surf fsaverage {$hemi} \
+        --cortex \
+        --glmdir {$hemi}.{$meas}.{$study}.{$smoothness}.glmdir
+    end
+  end
+end
+```
+
+##### [Script Three: Cluster Correction](https://github.com/elidom/Cortical-Thickness/blob/main/runClustSims.sh)
+```bash
+#!/bin/tcsh
+  
+setenv study $argv[1]
+  
+foreach meas (thickness volume)
+
+  foreach hemi (lh rh)
+    
+    foreach smoothness (20)
+      
+      foreach dir ({$hemi}.{$meas}.{$study}.{$smoothness}.glmdir)
+        
+          mri_glmfit-sim \
+          --glmdir {$dir} \
+          --cache 3.0 pos \
+          --cwp 0.05 
+            
+      end
+        
+    end
+      
+  end
+    
+end
+```
+
+##### [Script of scripts](https://github.com/elidom/Cortical-Thickness/blob/main/runAllGroupScripts.sh)
+If we are certain that our scripts are correct in their details and correctly placed in the corresponding directory, we can simply run this script that calls the three scripts one after the other, automatizing the whole process.
+```bash
+#!/bin/tcsh
+
+setenv study $argv[1]
+
+tcsh runMrisPreproc.sh $study
+tcsh runGLMs.sh $study
+tcsh runClustSims.sh $study
+```
+
+So, for instance, at this point I would simply run `tcsh runAllGroupScripts.sh EmpathyStudy` instead of going one by one.
+
