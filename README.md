@@ -758,11 +758,11 @@ for subj in `cat subjList.txt`; do \
 	done
 ```
 This will produce a `tmp.txt` file that will look a bit messy:
-![](https://github.com/elidom/Cortical-Thickness/blob/main/imgs/messy_mean_roi_ct.png)
+![messy table](https://github.com/elidom/Cortical-Thickness/blob/main/imgs/messy_mean_roi_ct.png)
 
 If you find a way to clean this file using code please do let me know to update this tutorial. In my case I decided to clean it by hand in order for it to be readily readable by R. It ended up like this:
 
-![](https://github.com/elidom/Cortical-Thickness/blob/main/imgs/clean_mean_roi_ct.png)
+![clean table](https://github.com/elidom/Cortical-Thickness/blob/main/imgs/clean_mean_roi_ct.png)
 
 At this point you can read the file using R (of the software of you preference) and run your desired statistical tests. 
 
