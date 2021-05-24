@@ -410,9 +410,16 @@ The same procedures apply to the right hemisphere (just using the right hemisphe
 
 [FreeSurfer](https://surfer.nmr.mgh.harvard.edu/) is a different, more popular pipeline. Its main aim is the same, namely, to extract individual brain cortical surfaces and estimate the distance between the inner and outer surface of the brain cortex. However, CIVET and FreeSurfer differ in several aspects; for instance, in their volumes registration algorithm, deformable model expansion algorithm, and their geometric deffinition of distance when estimating cortical thickness. A well-known consequence of this is that there is variation between the results obtained by each workflow (e.g. [Bhagwat et al. 2021](https://academic.oup.com/gigascience/article/10/1/giaa155/6106556)). Nevertheless, it is expected that both pipelines are able to detect the same general patterns of cortical thickness or, in the case of group studies, similar patterns of between-group differences ([Kharabian Masouleh et al.2020](https://scholarworks.utrgv.edu/som_pub/189/)). [Bhagwat et al. 2021](https://academic.oup.com/gigascience/article/10/1/giaa155/6106556) recommend using more than one tool in a study and report the differences in the results.
 
-FreeSurfer has the feature of performing a vertex-wise, whole-brain analysis, correct for multiple comparisons ([Hagler et al. 2006](https://pubmed.ncbi.nlm.nih.gov/17011792/) and, thus, identify significant clusters. If this is all one is looking for, the standard procedure is quite straightforward and very good tutorials have been made in the past (e.g. this [FreeSurfer Short Course in *Andy's Brain Book*](https://andysbrainbook.readthedocs.io/en/latest/FreeSurfer/FreeSurfer_Introduction.html). Here we will perform first a ROI analysis using our own prefedined ROI. Moreover, instead of letting FreeSurfer run all the processing by itself, we will run its first part, feed it with our own volBrain 1.0 generated, manually corrected skull-stripping masks, and then run the rest of the pipeline--presumably more accurately than if we did not use our better masks.
+FreeSurfer has the feature of performing a vertex-wise, whole-brain analysis, correct for multiple comparisons ([Hagler et al. 2006](https://pubmed.ncbi.nlm.nih.gov/17011792/)) and, thus, identify significant clusters. If this is all one is looking for, the standard procedure is quite straightforward and very good tutorials have been made in the past (e.g. this [FreeSurfer Short Course in *Andy's Brain Book*](https://andysbrainbook.readthedocs.io/en/latest/FreeSurfer/FreeSurfer_Introduction.html)). Here we will perform first a ROI analysis using our own prefedined ROI. Moreover, instead of letting FreeSurfer run all the processing by itself, we will run its first part, feed it with our own volBrain 1.0 generated, manually corrected skull-stripping masks, and then run the rest of the pipeline--presumably more accurately than if we did not use our better masks.
 
-Here, again, we ought to have all our NIFTI volumes in one same folder. So I will assume that all the *.nii.gz* volumes that need processing are in a directory called *FS* somewhere in your machine. First, we are going to denoise and correct the signal intensity inhomogeneities in the individual volumes, in the same way as we did with CIVET.
+Here, again, we ought to have all our NIFTI volumes in one same folder. So I will assume that all the *.nii.gz* volumes that need processing are in a directory called *FS* somewhere in your machine. First, we may want to create a plain text file with all our subject ID's for future processing steps:
+
+```bash
+ls *.nii* | cut -d "_" -f 1 | cut -d "-" -f 2 > subjList.txt
+```
+We verfy that we get a plain text file with one subject ID (only the number!) per row: `cat subjList.txt`.
+
+Then, we need to denoise and correct the signal intensity inhomogeneities in the individual volumes, in the same way as we did with CIVET.
 
 ```bash
 cd FS
@@ -429,7 +436,6 @@ mv *T1w* NIFTI_original
 # Unzip our NIFTI volumes: 
 gunzip *.gz
 ```
-
 Now we have to specify that what the folder where we want output to be placed is. I will create a new directory called rcnall1 for this. For example, I would type:
 
 ```bash
