@@ -720,3 +720,55 @@ tcsh runClustSims.sh $study
 
 So, for instance, at this point I would simply run `tcsh runAllGroupScripts.sh EmpathyStudy` instead of going one by one.
 
+### Checking whole-hemisphere results
+At this point we can know whether there are any differences to be found between our groups. If there are any significant clusters where cortical thickness is different between groups you can find them in a file in `lh.thickness.EmpathyStudy.20.glmdir/nt_ta/cache.th30.pos.sig.cluster.summary` for the Non-therapists vs  Psychotherapists contrast and in `lh.thickness.EmpathyStudy.20.glmdir/ta_nt/cache.th30.pos.sig.cluster.summary` for the opposite contrast. Needless to say, we can see the content of these files with the cat command.
+
+In those contrast-specific directories we are also able to find a surface file, e.g. `cache.th13.pos.sig.cluster.mgh` which you can overlay to the fsaverage inflated brain surface in order to visualize your significant cluster. For instance, in this comaprison we get a significant cluster in the left prefrontal cortex that looks like this:
+
+![Cluser Example](https://github.com/elidom/Cortical-Thickness/blob/main/imgs/cluster.png)
+
+which is extremely interesting.
+
+### Finishing ROI analysis
+But let's return to the ROI analysis. At this point we are ready to perform the last few steps and get to know whether there are any between-group differences in cortical thickness in our pre-scpecified ROI. Remember that we have a `roi` directory whithin which we have a `bna015.label` file which comprises our region of interest in the inflated fsaverage brain surface. Let's project this label to every individual sibject's brain with this command:
+
+```bash
+for subj in `cat subjList.txt`; do \
+	mri_label2label --srclabel roi/bna015.label \
+			--srcsubject fsaverage \
+			--trglabel ${subj}_bna015l.label \
+			--trgsubject ${subj} \
+			--regmethod surface \
+			--hemi lh; \
+	done
+```
+where `subjList.txt` is our previously created list of sibjects IDs.
+
+Finally, to extract every subject's mean cortical thickness in the ROI, we run the following command:
+
+```bash
+for subj in `cat subjList.txt`; do \
+	mris_anatomical_stats -log tmp.txt \
+			      -l ${subj}_bna015l.label \ 
+			      -b $subj lh; \
+	done
+```
+This will produce a `tmp.txt` file that will look a bit messy:
+![](https://github.com/elidom/Cortical-Thickness/blob/main/imgs/messy_mean_roi_ct.png)
+
+If you find a way to clean this file using code please do let me know to update this tutorial. In my case I decided to clean it by hand in order for it to be readily readable by R. It ended up like this:
+
+![](https://github.com/elidom/Cortical-Thickness/blob/main/imgs/clean_mean_roi_ct.png)
+
+At this point you can read the file using R (of the software of you preference) and run your desired statistical tests. 
+
+Have fun!
+
+---
+This tutorial can be improved in several ways. I will try to be doing that in the following months, but do not hesitate to suggest any changes you find pertinent.
+
+Marcos Eliseo Domínguez Arriola
+Instituto de Neurobiología - Universidad Nacional Autónoma de México (UNAM)
+Lab. C12
+
+marcoseliseo.da at gmail dot com
